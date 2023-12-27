@@ -18,6 +18,9 @@ const (
 func orderUnaryClientInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 	log.Println("Method: " + method)
 	err := invoker(ctx, method, req, reply, cc, opts...)
+	if err != nil {
+		log.Printf("Errors in %s: %v", method, err)
+	}
 
 	log.Println(reply)
 	return err
@@ -55,31 +58,20 @@ func main() {
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
+
 	c := pb.NewProductInfoClient(conn)
 	orderClient := pb.NewOrderManagementClient(conn)
 
-	name := "Apple iPhone 12"
-	description := `Meet Apple iPhone 12. All-new dual-camera system with Ultra Wide and Night mode.`
-	price := float32(1000.0)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := c.AddProduct(ctx, &pb.Product{Name: name, Description: description, Price: price})
-	if err != nil {
-		log.Fatalf("Could not add product: %v", err)
-	}
-	log.Printf("Product ID: %s added successfully", r.Value)
 
+	r, err := c.AddProduct(ctx, &pb.Product{
+		Name:        "Apple iPhone 12",
+		Description: "Meet Apple iPhone 12. All-new dual-camera system with Ultra Wide and Night mode.",
+		Price:       float32(1000.0),
+	})
 	product, err := c.GetProduct(ctx, &pb.ProductID{Value: r.Value})
-	if err != nil {
-		log.Fatalf("Could not get product: %v", err)
-	}
-	log.Print("Product: ", product.String())
-
 	product, err = c.GetProduct(ctx, &pb.ProductID{Value: product.Id})
-	if err != nil {
-		log.Fatalf("Could not get product: %v", err)
-	}
-	log.Print("Product: ", product.String())
 
 	orderId, err := orderClient.CreateOrder(ctx, &pb.Order{
 		Items:       []string{"Google glass"},
@@ -87,15 +79,8 @@ func main() {
 		Price:       100,
 		Destination: "Seoul",
 	})
-	if err != nil {
-		log.Fatalf("Could not create orderId: %v", err)
-	}
-	log.Print("Order: ", orderId.String())
 
 	retrievedOrder, err := orderClient.GetOrder(ctx, wrapperspb.String(orderId.GetValue()))
-	if err != nil {
-		log.Printf("Could not get orderId: %v", err)
-	}
 	log.Print("GetOrder Response -> : ", retrievedOrder.String())
 
 	searchStream, _ := orderClient.SearchOrders(ctx, wrapperspb.String("Google"))
@@ -109,9 +94,6 @@ func main() {
 	}
 
 	updateStream, err := orderClient.UpdateOrders(ctx)
-	if err != nil {
-		log.Fatalf("%v.UpdateOrders(_) = _, %v", orderClient, err)
-	}
 
 	updOrder1 := &pb.Order{
 		Id:          "aaaa",
@@ -137,21 +119,16 @@ func main() {
 		Destination: "Seoul",
 	}
 
-	if err := updateStream.Send(updOrder1); err != nil {
-		log.Fatalf("%v.Send(%v) = %v", updateStream, updOrder1, err)
-	}
-
-	if err := updateStream.Send(updOrder2); err != nil {
-		log.Fatalf("%v.Send(%v) = %v", updateStream, updOrder2, err)
-	}
-
-	if err := updateStream.Send(updOrder3); err != nil {
-		log.Fatalf("%v.Send(%v) = %v", updateStream, updOrder3, err)
+	updOrders := []*pb.Order{updOrder1, updOrder2, updOrder3}
+	for _, v := range updOrders {
+		if err = updateStream.Send(v); err != nil {
+			log.Fatal("Error!")
+		}
 	}
 
 	updateRes, err := updateStream.CloseAndRecv()
 	if err != nil {
-		log.Fatalf("%v.CloseAndRecv() got error %v, want %v", updateStream, err, nil)
+		log.Fatalf("%v.CloseAndRecv() got error %v", updateStream, err)
 	}
 	log.Printf("Update Orders Res: %s", updateRes)
 
