@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"log"
 	"net"
 	pb "productinfo/service/ecommerce"
@@ -10,7 +12,9 @@ import (
 )
 
 const (
-	port = ":50051"
+	port    = ":50051"
+	crtFile = "../server.crt"
+	keyFile = "../server.key"
 )
 
 func orderUnaryServerInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -50,13 +54,25 @@ func orderServerStreamInterceptor(srv interface{}, ss grpc.ServerStream, info *g
 }
 
 func main() {
+	cert, err := tls.LoadX509KeyPair(crtFile, keyFile)
+	if err != nil {
+		log.Fatalf("failed to load key pair: %s", err)
+	}
+	opts := []grpc.ServerOption{
+		grpc.UnaryInterceptor(orderUnaryServerInterceptor),
+		grpc.StreamInterceptor(orderServerStreamInterceptor),
+		grpc.Creds(credentials.NewServerTLSFromCert(&cert)),
+	}
+
+	s := grpc.NewServer(opts...)
+
+	pb.RegisterProductInfoServer(s, &server{})
+	pb.RegisterOrderManagementServer(s, &server{})
+
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer(grpc.UnaryInterceptor(orderUnaryServerInterceptor), grpc.StreamInterceptor(orderServerStreamInterceptor))
-	pb.RegisterProductInfoServer(s, &server{})
-	pb.RegisterOrderManagementServer(s, &server{})
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

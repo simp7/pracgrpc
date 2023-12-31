@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"io"
 	"log"
@@ -12,7 +12,9 @@ import (
 )
 
 const (
-	address = "localhost:50051"
+	address  = "localhost:50051"
+	hostname = ""
+	crtFile  = "../server.crt"
 )
 
 func orderUnaryClientInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
@@ -54,15 +56,32 @@ func newWrappedStream(s grpc.ClientStream) grpc.ClientStream {
 }
 
 func main() {
-	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(orderUnaryClientInterceptor), grpc.WithStreamInterceptor(clientStreamInterceptor))
+	creds, err := credentials.NewClientTLSFromFile(crtFile, hostname)
+	if err != nil {
+		log.Fatalf("failed to load credentials: %v", err)
+	}
+
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(creds),
+		grpc.WithUnaryInterceptor(orderUnaryClientInterceptor),
+		grpc.WithStreamInterceptor(clientStreamInterceptor),
+	}
+	conn, err := grpc.Dial(address, opts...)
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
 
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Fatal("Error when close connection: ", err)
+		}
+	}()
+
 	c := pb.NewProductInfoClient(conn)
 	orderClient := pb.NewOrderManagementClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	clientDeadline := time.Now().Add(2 * time.Second)
+	ctx, cancel := context.WithDeadline(context.Background(), clientDeadline)
 	defer cancel()
 
 	r, err := c.AddProduct(ctx, &pb.Product{
