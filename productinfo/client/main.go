@@ -2,19 +2,24 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"io"
 	"log"
+	"os"
 	pb "productinfo/client/ecommerce"
 	"time"
 )
 
 const (
 	address  = "localhost:50051"
-	hostname = ""
-	crtFile  = "../server.crt"
+	hostname = "localhost"
+	crtFile  = "../client.crt"
+	keyFile  = "../client.key"
+	caFile   = "../rootCA.crt"
 )
 
 func orderUnaryClientInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
@@ -56,16 +61,33 @@ func newWrappedStream(s grpc.ClientStream) grpc.ClientStream {
 }
 
 func main() {
-	creds, err := credentials.NewClientTLSFromFile(crtFile, hostname)
+	certificate, err := tls.LoadX509KeyPair(crtFile, keyFile)
 	if err != nil {
-		log.Fatalf("failed to load credentials: %v", err)
+		log.Fatalf("could not load client key pair: %s", err)
 	}
+
+	certPool := x509.NewCertPool()
+	ca, err := os.ReadFile(caFile)
+	if err != nil {
+		log.Fatalf("could not read ca certificate: %s", err)
+	}
+
+	if ok := certPool.AppendCertsFromPEM(ca); !ok {
+		log.Fatalf("failed to append ca certs")
+	}
+
+	creds := credentials.NewTLS(&tls.Config{
+		ServerName:   hostname,
+		Certificates: []tls.Certificate{certificate},
+		RootCAs:      certPool,
+	})
 
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(creds),
 		grpc.WithUnaryInterceptor(orderUnaryClientInterceptor),
 		grpc.WithStreamInterceptor(clientStreamInterceptor),
 	}
+
 	conn, err := grpc.Dial(address, opts...)
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)

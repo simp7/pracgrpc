@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"log"
 	"net"
+	"os"
 	pb "productinfo/service/ecommerce"
 	"time"
 )
@@ -15,6 +17,7 @@ const (
 	port    = ":50051"
 	crtFile = "../server.crt"
 	keyFile = "../server.key"
+	caFile  = "../rootCA.crt"
 )
 
 func orderUnaryServerInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -55,13 +58,23 @@ func orderServerStreamInterceptor(srv interface{}, ss grpc.ServerStream, info *g
 
 func main() {
 	cert, err := tls.LoadX509KeyPair(crtFile, keyFile)
+	certPool := x509.NewCertPool()
+	ca, err := os.ReadFile(caFile)
+	if err != nil {
+		log.Fatalf("could not read ca certificate: %s", err)
+	}
+
+	if ok := certPool.AppendCertsFromPEM(ca); !ok {
+		log.Fatalf("failed to append ca certificate")
+	}
+	mtls := tls.Config{ClientAuth: tls.RequireAndVerifyClientCert, Certificates: []tls.Certificate{cert}, ClientCAs: certPool}
 	if err != nil {
 		log.Fatalf("failed to load key pair: %s", err)
 	}
 	opts := []grpc.ServerOption{
 		grpc.UnaryInterceptor(orderUnaryServerInterceptor),
 		grpc.StreamInterceptor(orderServerStreamInterceptor),
-		grpc.Creds(credentials.NewServerTLSFromCert(&cert)),
+		grpc.Creds(credentials.NewTLS(&mtls)),
 	}
 
 	s := grpc.NewServer(opts...)
