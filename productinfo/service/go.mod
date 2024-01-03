@@ -4,11 +4,13 @@ go 1.21.5
 
 require (
 	github.com/gofrs/uuid v4.4.0+incompatible
+	golang.org/x/crypto v0.16.0
 	google.golang.org/grpc v1.60.1
 	google.golang.org/protobuf v1.31.0
 )
 
 require (
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect

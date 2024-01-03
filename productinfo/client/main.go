@@ -2,24 +2,17 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"io"
 	"log"
-	"os"
 	pb "productinfo/client/ecommerce"
 	"time"
 )
 
 const (
-	address  = "localhost:50051"
-	hostname = "localhost"
-	crtFile  = "../client.crt"
-	keyFile  = "../client.key"
-	caFile   = "../rootCA.crt"
+	address = "localhost:50051"
 )
 
 func orderUnaryClientInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
@@ -34,7 +27,7 @@ func orderUnaryClientInterceptor(ctx context.Context, method string, req, reply 
 }
 
 func clientStreamInterceptor(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
-	log.Println("====== [Client Interceptor] ", method)
+	log.Println("===== [Client Interceptor] ", method)
 	s, err := streamer(ctx, desc, cc, method, opts...)
 	if err != nil {
 		return nil, err
@@ -61,29 +54,8 @@ func newWrappedStream(s grpc.ClientStream) grpc.ClientStream {
 }
 
 func main() {
-	certificate, err := tls.LoadX509KeyPair(crtFile, keyFile)
-	if err != nil {
-		log.Fatalf("could not load client key pair: %s", err)
-	}
-
-	certPool := x509.NewCertPool()
-	ca, err := os.ReadFile(caFile)
-	if err != nil {
-		log.Fatalf("could not read ca certificate: %s", err)
-	}
-
-	if ok := certPool.AppendCertsFromPEM(ca); !ok {
-		log.Fatalf("failed to append ca certs")
-	}
-
-	creds := credentials.NewTLS(&tls.Config{
-		ServerName:   hostname,
-		Certificates: []tls.Certificate{certificate},
-		RootCAs:      certPool,
-	})
-
 	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(creds),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(orderUnaryClientInterceptor),
 		grpc.WithStreamInterceptor(clientStreamInterceptor),
 	}
