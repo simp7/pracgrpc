@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	pb "github.com/simp7/pracgrpc/model/ecommerce"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	pb "productinfo/service/ecommerce"
 	"time"
 )
 

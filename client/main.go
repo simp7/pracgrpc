@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
+	pb "github.com/simp7/pracgrpc/model/ecommerce"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"io"
 	"log"
-	pb "productinfo/client/ecommerce"
 	"time"
 )
 

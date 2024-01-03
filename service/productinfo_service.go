@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/gofrs/uuid"
+	pb "github.com/simp7/pracgrpc/model/ecommerce"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"io"
 	"log"
-	pb "productinfo/service/ecommerce"
 	"strings"
 )
 
