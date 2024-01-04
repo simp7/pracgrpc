@@ -38,3 +38,8 @@ func (user *User) Clone() *User {
 		Role:           user.Role,
 	}
 }
+
+type UserStore interface {
+	Save(user User) error
+	Find(username string) (User, error)
+}

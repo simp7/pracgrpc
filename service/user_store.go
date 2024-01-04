@@ -10,17 +10,12 @@ var (
 	ErrAlreadyExists = errors.New("user already exist")
 )
 
-type UserStore interface {
-	Save(user *model_v0_0_0_20240103072605_23fc1710dcc0.User) error
-	Find(username string) (*model_v0_0_0_20240103072605_23fc1710dcc0.User, error)
-}
-
 type InMemoryUserStore struct {
 	mutex sync.RWMutex
-	users map[string]*model_v0_0_0_20240103072605_23fc1710dcc0.User
+	users map[string]*model.User
 }
 
-func (store *InMemoryUserStore) Save(user *model_v0_0_0_20240103072605_23fc1710dcc0.User) error {
+func (store *InMemoryUserStore) Save(user *model.User) error {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
 
@@ -32,7 +27,7 @@ func (store *InMemoryUserStore) Save(user *model_v0_0_0_20240103072605_23fc1710d
 	return nil
 }
 
-func (store *InMemoryUserStore) Find(username string) (*model_v0_0_0_20240103072605_23fc1710dcc0.User, error) {
+func (store *InMemoryUserStore) Find(username string) (*model.User, error) {
 	store.mutex.RLock()
 	defer store.mutex.RUnlock()
 
@@ -46,6 +41,6 @@ func (store *InMemoryUserStore) Find(username string) (*model_v0_0_0_20240103072
 
 func NewInMemoryUserStore() *InMemoryUserStore {
 	return &InMemoryUserStore{
-		users: make(map[string]*model_v0_0_0_20240103072605_23fc1710dcc0.User),
+		users: make(map[string]*model.User),
 	}
 }
