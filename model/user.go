@@ -40,6 +40,6 @@ func (user *User) Clone() *User {
 }
 
 type UserStore interface {
-	Save(user User) error
-	Find(username string) (User, error)
+	Save(user *User) error
+	Find(username string) (*User, error)
 }
