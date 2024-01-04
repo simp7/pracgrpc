@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/simp7/pracgrpc/model"
 	pb "github.com/simp7/pracgrpc/model/ecommerce"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -31,7 +32,7 @@ func NewJWTManager(secretKey string, tokenDuration time.Duration) *JWTManager {
 	return &JWTManager{secretKey, tokenDuration}
 }
 
-func (manager *JWTManager) Generate(user *User) (string, error) {
+func (manager *JWTManager) Generate(user *model_v0_0_0_20240103072605_23fc1710dcc0.User) (string, error) {
 	claims := UserClaims{
 		StandardClaims: jwt.StandardClaims{ExpiresAt: time.Now().Add(manager.tokenDuration).Unix()},
 		Username:       user.Username,

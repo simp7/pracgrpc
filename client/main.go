@@ -53,6 +53,10 @@ func newWrappedStream(s grpc.ClientStream) grpc.ClientStream {
 	return &wrappedStream{s}
 }
 
+func createUser(userStore model.User) {
+
+}
+
 func main() {
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
