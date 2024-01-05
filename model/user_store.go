@@ -1,8 +1,7 @@
-package main
+package model
 
 import (
 	"errors"
-	"github.com/simp7/pracgrpc/model"
 	"sync"
 )
 
@@ -12,10 +11,10 @@ var (
 
 type InMemoryUserStore struct {
 	mutex sync.RWMutex
-	users map[string]*model.User
+	users map[string]*User
 }
 
-func (store *InMemoryUserStore) Save(user *model.User) error {
+func (store *InMemoryUserStore) Save(user *User) error {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
 
@@ -27,7 +26,7 @@ func (store *InMemoryUserStore) Save(user *model.User) error {
 	return nil
 }
 
-func (store *InMemoryUserStore) Find(username string) (*model.User, error) {
+func (store *InMemoryUserStore) Find(username string) (*User, error) {
 	store.mutex.RLock()
 	defer store.mutex.RUnlock()
 
@@ -41,6 +40,6 @@ func (store *InMemoryUserStore) Find(username string) (*model.User, error) {
 
 func NewInMemoryUserStore() *InMemoryUserStore {
 	return &InMemoryUserStore{
-		users: make(map[string]*model.User),
+		users: make(map[string]*User),
 	}
 }

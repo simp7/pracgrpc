@@ -23,7 +23,7 @@ type UserClaims struct {
 }
 
 type AuthServer struct {
-	userStore  UserStore
+	userStore  model.UserStore
 	jwtManager *JWTManager
 	pb.UnimplementedAuthServiceServer
 }
@@ -69,7 +69,7 @@ func (manager *JWTManager) Verify(accessToken string) (*UserClaims, error) {
 	return claims, nil
 }
 
-func NewAuthServer(userStore UserStore, jwtManager *JWTManager) *AuthServer {
+func NewAuthServer(userStore model.UserStore, jwtManager *JWTManager) *AuthServer {
 	return &AuthServer{userStore, jwtManager, pb.UnimplementedAuthServiceServer{}}
 }
 

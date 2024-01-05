@@ -62,6 +62,14 @@ func createUser(userStore model.UserStore, username, password, role string) erro
 	return userStore.Save(user)
 }
 
+func seedUsers(userStore model.UserStore) error {
+	err := createUser(userStore, "admin1", "secret", "admin")
+	if err != nil {
+		return err
+	}
+	return createUser(userStore, "user1", "secret", "user")
+}
+
 func main() {
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),

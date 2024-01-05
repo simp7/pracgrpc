@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/simp7/pracgrpc/model"
 	pb "github.com/simp7/pracgrpc/model/ecommerce"
 	"google.golang.org/grpc"
 	"log"
@@ -53,7 +54,7 @@ func orderServerStreamInterceptor(srv interface{}, ss grpc.ServerStream, info *g
 
 func main() {
 
-	userStore := NewInMemoryUserStore()
+	userStore := model.NewInMemoryUserStore()
 	jwtManager := NewJWTManager(secretKey, tokenDuration)
 
 	authServer := NewAuthServer(userStore, jwtManager)
