@@ -33,10 +33,9 @@ func seedUsers(userStore model.UserStore) error {
 }
 
 func accessibleRoles() map[string][]string {
-
 	return map[string][]string{
-		"addProduct":  {"admin"},
-		"createOrder": {"admin", "user"},
+		"/ecommerce.ProductInfo/addProduct":      {"admin"},
+		"/ecommerce.OrderManagement/createOrder": {"admin", "user"},
 	}
 }
 
