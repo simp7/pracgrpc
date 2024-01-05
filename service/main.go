@@ -1,10 +1,10 @@
 package main
 
 import (
-	"context"
 	"github.com/simp7/pracgrpc/model"
 	pb "github.com/simp7/pracgrpc/model/ecommerce"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
 	"time"
@@ -16,52 +16,46 @@ const (
 	tokenDuration = 15 * time.Minute
 )
 
-func orderUnaryServerInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	log.Println("=== [Server Interceptor]", info.FullMethod)
-	m, err := handler(ctx, req)
-
-	log.Printf("Post Proc Message: %s", m)
-
-	return m, err
-}
-
-type wrappedStream struct {
-	grpc.ServerStream
-}
-
-func (w *wrappedStream) RecvMsg(m interface{}) error {
-	log.Printf("===== [Server Stream Intercepter Wrapper] "+"Receive a message (Type: %T) at %s", m, time.Now().Format(time.RFC3339))
-	return w.ServerStream.RecvMsg(m)
-}
-
-func (w *wrappedStream) SendMsg(m interface{}) error {
-	log.Printf(" ===== [Server Stream Interceptor Wrapper] "+"Send a message (Type: %T) at %s", m, time.Now().Format(time.RFC3339))
-	return w.ServerStream.SendMsg(m)
-}
-
-func newWrappedStream(s grpc.ServerStream) grpc.ServerStream {
-	return &wrappedStream{s}
-}
-
-func orderServerStreamInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-	log.Println("===== [Server Stream Interceptor] ", info.FullMethod)
-	err := handler(srv, newWrappedStream(ss))
+func createUser(userStore model.UserStore, username, password, role string) error {
+	user, err := model.NewUser(username, password, role)
 	if err != nil {
-		log.Printf("RPC failed with error %v", err)
+		return err
 	}
-	return err
+	return userStore.Save(user)
+}
+
+func seedUsers(userStore model.UserStore) error {
+	err := createUser(userStore, "admin1", "secret", "admin")
+	if err != nil {
+		return err
+	}
+	return createUser(userStore, "user1", "secret", "user")
+}
+
+func accessibleRoles() map[string][]string {
+
+	return map[string][]string{
+		"addProduct":  {"admin"},
+		"createOrder": {"admin", "user"},
+	}
 }
 
 func main() {
-
 	userStore := model.NewInMemoryUserStore()
 	jwtManager := NewJWTManager(secretKey, tokenDuration)
 
+	if err := seedUsers(userStore); err != nil {
+		log.Fatal("cannot seed users: ", err)
+	} else {
+		log.Println("seed users successfully")
+	}
+
 	authServer := NewAuthServer(userStore, jwtManager)
+	interceptor := NewAuthInterceptor(jwtManager, accessibleRoles())
 
 	opts := []grpc.ServerOption{
-		grpc.UnaryInterceptor(orderUnaryServerInterceptor),
-		grpc.StreamInterceptor(orderServerStreamInterceptor),
+		grpc.UnaryInterceptor(interceptor.Unary()),
+		grpc.StreamInterceptor(interceptor.Stream()),
 	}
 
 	s := grpc.NewServer(opts...)
@@ -69,6 +63,7 @@ func main() {
 	pb.RegisterProductInfoServer(s, &server{})
 	pb.RegisterOrderManagementServer(s, &server{})
 	pb.RegisterAuthServiceServer(s, authServer)
+	reflection.Register(s)
 
 	lis, err := net.Listen("tcp", port)
 	if err != nil {

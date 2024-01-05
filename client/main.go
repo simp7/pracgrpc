@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/simp7/pracgrpc/model"
 	pb "github.com/simp7/pracgrpc/model/ecommerce"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -52,22 +51,6 @@ func (w *wrappedStream) SendMsg(m interface{}) error {
 
 func newWrappedStream(s grpc.ClientStream) grpc.ClientStream {
 	return &wrappedStream{s}
-}
-
-func createUser(userStore model.UserStore, username, password, role string) error {
-	user, err := model.NewUser(username, password, role)
-	if err != nil {
-		return err
-	}
-	return userStore.Save(user)
-}
-
-func seedUsers(userStore model.UserStore) error {
-	err := createUser(userStore, "admin1", "secret", "admin")
-	if err != nil {
-		return err
-	}
-	return createUser(userStore, "user1", "secret", "user")
 }
 
 func main() {

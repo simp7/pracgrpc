@@ -8,6 +8,7 @@ import (
 	pb "github.com/simp7/pracgrpc/model/ecommerce"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"log"
 	"time"
 )
 
@@ -78,6 +79,7 @@ func (server *AuthServer) Login(ctx context.Context, req *pb.LoginRequest) (*pb.
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "cannot find user: %v", err)
 	}
+	log.Printf("Generate user: %s - %s", user.Username, user.HashedPassword)
 
 	if user == nil || !user.IsCorrectPassword(req.GetPassword()) {
 		return nil, status.Errorf(codes.NotFound, "incorrect username/password")

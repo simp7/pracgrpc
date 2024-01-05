@@ -3,7 +3,7 @@ module github.com/simp7/pracgrpc/client
 go 1.21.5
 
 require (
-	github.com/simp7/pracgrpc/model v0.0.0-20240104094248-9e0649100c90
+	github.com/simp7/pracgrpc/model v0.0.0-20240105025649-357249b0b70e
 	google.golang.org/grpc v1.60.1
 	google.golang.org/protobuf v1.32.0
 )
